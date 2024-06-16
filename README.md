@@ -36,3 +36,7 @@ forge script script/DeployRegToken.s.sol --rpc-url <SEPOLIA_RPC_URL> --private-k
 #### 关于 REG 代币
 
 REG 是一种 ERC20 代币，其价格与 ETH 按 100:1 绑定。合约地址为：`0x18B96581B8c41e9C1f8Ce5eFD9b81Dd564ab94A0`。
+
+### 增加 REG 代币交易手续费功能（2024/6/16）
+
+新合约地址：0xd4Dd9dd315cE00325930eFa1e26F43271ff94a6d

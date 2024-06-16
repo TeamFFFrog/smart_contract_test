@@ -7,13 +7,18 @@ import "@chainlink/contracts/v0.8/interfaces/AggregatorV3Interface.sol";
 
 contract RegToken is ERC20, Ownable {
     AggregatorV3Interface internal priceFeed;
+    uint256 public feeRate; // Fee rate in basis points (e.g., 100 = 1%)
+
+    event FeeRateChanged(uint256 newFeeRate);
 
     // Using Chainlink's ETH/USD price feed
     constructor(
         address _priceFeed,
-        address initialOwner
+        address initialOwner,
+        uint256 _feeRate
     ) ERC20("Reg Token", "REG") Ownable(initialOwner) {
         priceFeed = AggregatorV3Interface(_priceFeed);
+        feeRate = _feeRate;
     }
 
     /**
@@ -52,29 +57,39 @@ contract RegToken is ERC20, Ownable {
         return (regAmount * (0.01 ether * 1e8)) / ethPrice;
     }
 
-    // Buy Reg tokens with ETH
+    // Buy Reg tokens with ETH, deducting fee
     function buyRegTokens() public payable {
         require(msg.value > 0, "Must send ETH to buy REG tokens");
-        uint256 regAmount = calculateRegAmount(msg.value);
+        uint256 fee = (msg.value * feeRate) / 10000;
+        uint256 netEthAmount = msg.value - fee;
+        uint256 regAmount = calculateRegAmount(netEthAmount);
         _mint(msg.sender, regAmount);
     }
 
-    // Sell Reg tokens for ETH
+    // Sell Reg tokens for ETH, deducting fee
     function sellRegTokens(uint256 regAmount) public {
         require(balanceOf(msg.sender) >= regAmount, "Insufficient REG balance");
         uint256 ethAmount = calculateEthAmount(regAmount);
+        uint256 fee = (ethAmount * feeRate) / 10000;
+        uint256 netEthAmount = ethAmount - fee;
         require(
-            address(this).balance >= ethAmount,
+            address(this).balance >= netEthAmount,
             "Insufficient ETH balance in contract"
         );
         _burn(msg.sender, regAmount);
-        payable(msg.sender).transfer(ethAmount);
+        payable(msg.sender).transfer(netEthAmount);
     }
 
     // Withdraw ETH from the contract (only owner)
     function withdrawETH(uint256 amount) public onlyOwner {
         require(address(this).balance >= amount, "Insufficient ETH balance");
         payable(owner()).transfer(amount);
+    }
+
+    // Update fee rate (only owner)
+    function updateFeeRate(uint256 newFeeRate) public onlyOwner {
+        feeRate = newFeeRate;
+        emit FeeRateChanged(newFeeRate);
     }
 
     // Receive ETH to the contract

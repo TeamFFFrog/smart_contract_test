@@ -70,7 +70,7 @@ contract RegTokenTest is Test {
         mockPriceFeed.setPrice(3000 * 10 ** 8); // Set price to 3000 USD
 
         // Deploy RegToken contract
-        regToken = new RegToken(address(mockPriceFeed), owner);
+        regToken = new RegToken(address(mockPriceFeed), owner, 100); // Fee rate is 1%
 
         // Fund the contract with ETH to support token selling
         vm.deal(address(regToken), 1 ether);
@@ -89,29 +89,51 @@ contract RegTokenTest is Test {
         vm.deal(user, 1 ether); // Fund user with 1 ETH
 
         vm.prank(user);
-        regToken.buyRegTokens{value: 0.01 ether}();
+        regToken.buyRegTokens{value: 0.1 ether}();
 
         uint256 regBalance = regToken.balanceOf(user);
-        assertEq(regBalance, 3000, "User should have 3000 REG tokens");
+        // Deduct 1% fee from 0.1 ether, so net ETH is 0.099 ether
+        uint256 expectedRegAmount = regToken.calculateRegAmount(0.099 ether);
+        assertEq(
+            regBalance,
+            expectedRegAmount,
+            "User should have correct REG tokens"
+        );
     }
 
     function testSellRegTokens() public {
         vm.deal(user, 1 ether); // Fund user with 1 ETH
 
         vm.prank(user);
-        regToken.buyRegTokens{value: 0.01 ether}();
+        regToken.buyRegTokens{value: 0.1 ether}();
 
         uint256 regBalance = regToken.balanceOf(user);
-        assertEq(regBalance, 3000, "User should have 3000 REG tokens");
+        // Deduct 1% fee from 0.1 ether, so net ETH is 0.099 ether
+        uint256 expectedRegAmount = regToken.calculateRegAmount(0.099 ether);
+        assertEq(
+            regBalance,
+            expectedRegAmount,
+            "User should have correct REG tokens"
+        );
 
         vm.prank(user);
-        regToken.sellRegTokens(3000);
+        regToken.sellRegTokens(expectedRegAmount);
 
         regBalance = regToken.balanceOf(user);
         assertEq(regBalance, 0, "User should have 0 REG tokens");
 
+        // User should have received ETH minus fee
+        uint256 expectedEthAmount = regToken.calculateEthAmount(
+            expectedRegAmount
+        );
+        uint256 fee = (expectedEthAmount * 100) / 10000; // 1% fee
+        uint256 netEthAmount = expectedEthAmount - fee;
         uint256 ethBalance = user.balance;
-        assertEq(ethBalance, 1 ether, "User should have 1 ETH back");
+        assertEq(
+            ethBalance,
+            netEthAmount + 0.9 ether,
+            "User should have correct ETH back"
+        ); // Initial ETH - 0.1 ETH + netEthAmount
     }
 
     function testWithdrawETH() public {
@@ -128,5 +150,17 @@ contract RegTokenTest is Test {
 
         uint256 ownerBalance = owner.balance;
         assertEq(ownerBalance, 0.5 ether, "Owner should have 0.5 ETH");
+    }
+
+    function testUpdateFeeRate() public {
+        uint256 newFeeRate = 200; // 2%
+        vm.prank(owner);
+        regToken.updateFeeRate(newFeeRate);
+
+        assertEq(
+            regToken.feeRate(),
+            newFeeRate,
+            "Fee rate should be updated to 2%"
+        );
     }
 }
