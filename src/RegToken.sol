@@ -42,8 +42,7 @@ contract RegToken is ERC20, Ownable {
         int price = getLatestPrice();
         require(price > 0, "Invalid price feed");
         uint256 ethPrice = uint256(price);
-        // Assume 1 REG = 0.01 ETH (1 ETH = 100 REG)
-        return (ethAmount * ethPrice) / (0.01 ether * 1e8);
+        return (ethAmount * ethPrice) / 1e8;
     }
 
     // Calculate the amount of ETH for given REG tokens
@@ -53,14 +52,13 @@ contract RegToken is ERC20, Ownable {
         int price = getLatestPrice();
         require(price > 0, "Invalid price feed");
         uint256 ethPrice = uint256(price);
-        // Assume 1 REG = 0.01 ETH (1 ETH = 100 REG)
-        return (regAmount * (0.01 ether * 1e8)) / ethPrice;
+        return ((regAmount * 1e8 * 1e18) / ethPrice);
     }
 
     // Buy Reg tokens with ETH, deducting fee
     function buyRegTokens() public payable {
         require(msg.value > 0, "Must send ETH to buy REG tokens");
-        uint256 fee = (msg.value * feeRate) / 10000;
+        uint256 fee = (msg.value * feeRate) / 100;
         uint256 netEthAmount = msg.value - fee;
         uint256 regAmount = calculateRegAmount(netEthAmount);
         _mint(msg.sender, regAmount);
@@ -70,14 +68,15 @@ contract RegToken is ERC20, Ownable {
     function sellRegTokens(uint256 regAmount) public {
         require(balanceOf(msg.sender) >= regAmount, "Insufficient REG balance");
         uint256 ethAmount = calculateEthAmount(regAmount);
-        uint256 fee = (ethAmount * feeRate) / 10000;
+        uint256 fee = (ethAmount * feeRate) / 100;
         uint256 netEthAmount = ethAmount - fee;
+        uint256 netEthAmountToSend = netEthAmount / 1e18;
         require(
-            address(this).balance >= netEthAmount,
+            address(this).balance >= netEthAmountToSend,
             "Insufficient ETH balance in contract"
         );
         _burn(msg.sender, regAmount);
-        payable(msg.sender).transfer(netEthAmount);
+        payable(msg.sender).transfer(netEthAmountToSend);
     }
 
     // Withdraw ETH from the contract (only owner)

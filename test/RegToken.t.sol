@@ -70,7 +70,7 @@ contract RegTokenTest is Test {
         mockPriceFeed.setPrice(3000 * 10 ** 8); // Set price to 3000 USD
 
         // Deploy RegToken contract
-        regToken = new RegToken(address(mockPriceFeed), owner, 100); // Fee rate is 1%
+        regToken = new RegToken(address(mockPriceFeed), owner, 1); // Fee rate is 1%
 
         // Fund the contract with ETH to support token selling
         vm.deal(address(regToken), 1 ether);
@@ -126,12 +126,13 @@ contract RegTokenTest is Test {
         uint256 expectedEthAmount = regToken.calculateEthAmount(
             expectedRegAmount
         );
-        uint256 fee = (expectedEthAmount * 100) / 10000; // 1% fee
+        uint256 fee = expectedEthAmount / 100; // 1% fee
         uint256 netEthAmount = expectedEthAmount - fee;
+        uint256 netEthAmountToSend = netEthAmount / 1e18;
         uint256 ethBalance = user.balance;
         assertEq(
             ethBalance,
-            netEthAmount + 0.9 ether,
+            netEthAmountToSend + 0.9 ether,
             "User should have correct ETH back"
         ); // Initial ETH - 0.1 ETH + netEthAmount
     }
