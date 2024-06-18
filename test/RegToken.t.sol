@@ -164,4 +164,27 @@ contract RegTokenTest is Test {
             "Fee rate should be updated to 2%"
         );
     }
+
+    function testOnlyOwnerCanUpdateFeeRate() public {
+        uint256 newFeeRate = 200; // 2%
+        vm.prank(user);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Ownable.OwnableUnauthorizedAccount.selector,
+                user
+            )
+        );
+        regToken.updateFeeRate(newFeeRate);
+    }
+
+    function testOnlyOwnerCanWithdrawETH() public {
+        vm.prank(user);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Ownable.OwnableUnauthorizedAccount.selector,
+                user
+            )
+        );
+        regToken.withdrawETH(0.5 ether);
+    }
 }
