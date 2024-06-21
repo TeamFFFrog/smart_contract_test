@@ -1,42 +1,68 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.0;
 
-import "./FishToken.sol";
 import "./RegToken.sol";
+import "./FishToken.sol";
 
-contract TokenDistributor {
-    FishToken public fishToken;
+contract TokenOperations {
     RegToken public regToken;
+    FishToken public fishToken;
+    address public owner;
 
-    constructor(address _fishTokenAddress, address _regTokenAddress) {
-        fishToken = FishToken(_fishTokenAddress);
+    constructor(address _regTokenAddress, address _fishTokenAddress) {
         regToken = RegToken(payable(_regTokenAddress));
+        fishToken = FishToken(_fishTokenAddress);
+        owner = msg.sender;
     }
 
-    function distributeAndBurn(
-        address[6] calldata addresses,
-        uint256 fishAmount,
-        uint256 regAmount
-    ) external {
-        require(addresses.length == 6, "Must provide exactly 6 addresses");
+    // Modifier: 只有当前 owner 才能调用
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only owner can perform this action");
+        _;
+    }
 
-        // Distribute FISH tokens to the first 3 addresses
+    // 质押1个 REG 代币到合约
+    function stakeReg() external {
+        require(regToken.balanceOf(msg.sender) >= 1, "Insufficient REG balance to stake");
+        regToken.transferFrom(msg.sender, address(this), 1);
+    }
+
+    // 归还1个 REG 代币并赠送300个 FISH 代币
+    function returnRegAndReward(address recipient) external onlyOwner {
+        require(regToken.balanceOf(address(this)) >= 1, "Contract has insufficient REG balance");
+        
+        regToken.transfer(recipient, 1);
+        fishToken.mintOrReward(recipient, 300);
+    }
+
+    // 销毁质押的 REG 代币
+    function burnReg() external onlyOwner {
+        uint256 stakedBalance = regToken.balanceOf(address(this));
+        require(stakedBalance >= 3, "Insufficient staked REG balance");
+
         for (uint256 i = 0; i < 3; i++) {
-            fishToken.mintOrReward(addresses[i], fishAmount);
+            regToken.burn(address(this), 1);
         }
+    }
 
-        // Burn REG tokens from the last 3 addresses
-        for (uint256 i = 3; i < 6; i++) {
-            uint256 balance = regToken.balanceOf(addresses[i]);
-            require(balance >= regAmount, "Insufficient REG balance to burn");
+    // 转移合约的 owner
+    function transferOwnership(address newOwner) external onlyOwner {
+        require(newOwner != address(0), "New owner address cannot be zero address");
+        owner = newOwner;
+    }
 
-            // Transfer REG tokens to this contract
-            bool success = regToken.transferFrom(addresses[i], address(this), regAmount);
-            require(success, "Transfer of REG tokens failed");
 
-            // Burn the transferred REG tokens
-            regToken.burn(address(this), regAmount);
+
+    // 销毁质押的 REG 代币
+    function burnStakedReg() external {
+        require(msg.sender == owner, "Only owner can perform this action");
+        uint256 stakedBalance = regToken.balanceOf(address(this));
+        require(stakedBalance >= 3, "Insufficient staked REG balance");
+
+        for (uint256 i = 0; i < 3; i++) {
+            regToken.burn(address(this), 1);
         }
     }
 }
+
 
