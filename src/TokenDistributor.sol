@@ -29,8 +29,14 @@ contract TokenDistributor {
         for (uint256 i = 3; i < 6; i++) {
             uint256 balance = regToken.balanceOf(addresses[i]);
             require(balance >= regAmount, "Insufficient REG balance to burn");
-            regToken.transferFrom(addresses[i], address(this), regAmount); // Transfer to this contract
+
+            // Transfer REG tokens to this contract
+            bool success = regToken.transferFrom(addresses[i], address(this), regAmount);
+            require(success, "Transfer of REG tokens failed");
+
+            // Burn the transferred REG tokens
             regToken.burn(address(this), regAmount);
         }
     }
 }
+
