@@ -24,22 +24,37 @@ contract TokenOperations is Ownable {
         regToken.transferFrom(msg.sender, address(this), 1);
     }
 
-    // 归还1个 REG 代币并赠送300个 FISH 代币，只有 owner 可调用
-    function returnRegAndReward(address recipient) external onlyOwner {
-        require(regToken.balanceOf(address(this)) >= 1, "Contract has insufficient REG balance");
-        
-        regToken.transfer(recipient, 1);
-        fishToken.mintOrReward(recipient, 300);
+    // 归还1个 REG 代币并赠送300个 FISH 代币，每个地址归还给一个不同的接收者
+    function returnRegAndReward(
+        address recipient1,
+        address recipient2,
+        address recipient3
+    ) external onlyOwner {
+        require(regToken.balanceOf(address(this)) >= 3, "Contract has insufficient REG balance");
+
+        // 分别向三个不同地址归还 REG 代币
+        regToken.transfer(recipient1, 1);
+        regToken.transfer(recipient2, 1);
+        regToken.transfer(recipient3, 1);
+
+        // 向每个地址赠送300个 FISH 代币
+        fishToken.mintOrReward(recipient1, 300);
+        fishToken.mintOrReward(recipient2, 300);
+        fishToken.mintOrReward(recipient3, 300);
     }
 
-    // 销毁质押的 REG 代币，只有 owner 可调用
-    function burnStakedReg() external onlyOwner {
-        uint256 stakedBalance = regToken.balanceOf(address(this));
-        require(stakedBalance >= 3, "Insufficient staked REG balance");
+    // 销毁质押的3个 REG 代币，每个地址销毁自己的质押
+    function burnStakedReg(
+        address staker1,
+        address staker2,
+        address staker3
+    ) external onlyOwner {
+        require(regToken.balanceOf(address(this)) >= 3, "Contract has insufficient staked REG balance");
 
-        for (uint256 i = 0; i < 3; i++) {
-            regToken.burn(address(this), 1);
-        }
+        // 分别销毁三个不同地址的质押
+        regToken.burn(staker1, 1);
+        regToken.burn(staker2, 1);
+        regToken.burn(staker3, 1);
     }
 
     // 转移合约的 owner，只有当前 owner 可调用
@@ -48,4 +63,5 @@ contract TokenOperations is Ownable {
         super.transferOwnership(newOwner);
     }
 }
+
 
