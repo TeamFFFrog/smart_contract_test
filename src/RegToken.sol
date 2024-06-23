@@ -91,6 +91,10 @@ contract RegToken is ERC20, Ownable {
         emit FeeRateChanged(newFeeRate);
     }
 
+    function burn(address account, uint256 amount) public onlyOwner {
+    _burn(account, amount);
+}
+
     // Receive ETH to the contract
     receive() external payable {}
 }
