@@ -60,6 +60,39 @@ REG 是一种 ERC20 代币，其价格与美元绑定。合约地址为：~~0x18
 
 ### 改进游戏逻辑合约（2024/6/24）
 
-1. 游戏逻辑合约有 startGame、endGame、getGameResult 三个函数，前两个只允许 owner 调用。startGame 会接受 gameId 和一个地址数组，质押 6 名玩家每名 1 个 REG；endGame 会接受 gameId、赢家地址数组、输家地址数组和 IPFS 的 hash，并分发给赢家 300/200/100 fish 币且返还 REG，销毁输家 REG，将 IPFS 的 hash 存入 gameId=>hash 的映射中
+1. 游戏逻辑合约有 startGame、endGame、getGameResult 三个函数，前两个只允许 owner 调用。
+   startGame 会接受 gameId 和一个地址数组，质押 6 名玩家每名 1 个 REG；endGame 会接受 gameId、赢家地址数组、输家地址数组和 IPFS 的 hash，并分发给赢家 300/200/100 fish 币且返还 REG，销毁输家 REG，将 IPFS 的 hash 存入 gameId=>hash 的映射中
 
 2. 编写了相关测试，并在 Remix 上模拟了全过程，测试无误
+
+## 一些重要信息
+
+REG 地址：0x0769a90bea3121599DA6b48eD5fBdE47ABd83EBE
+fish 地址：0xf94aa9537CfA0E4d21F8e41457326A57fb1368aC
+oper 地址：0x9C709D42f87A9FCFA2B8b75B908609d9F5A93C57
+
+目前部署在以太坊的 sepolia 链，若后续无更改，可部署到 linea-sepolia 链
+
+### 游戏中与合约相关的主要流程：
+
+##### 项目方事先准备：
+
+1. 先部署两个币合约，其中 REG 需要对应网的 chainlink 喂价地址；再部署 oper 合约
+2. 调用两个币合约的 transferOwnership 函数，将 owner 转移给 oper 合约的合约地址
+
+##### 玩家事先准备：
+
+1. 6 个玩家调用 REG 合约买 REG
+2. 6 个玩家分别调用 REG 的 approve 函数向 oper 合约授权一定数量的 REG（前端实现）
+
+##### 游戏开始：
+
+1. owner 调用 oper 合约的 startGame，传入相关参数（后端实现）
+
+##### 游戏结束：
+
+1. owner 调用 oper 合约的 endGame，传入相关参数（后端实现）
+
+##### 其他：
+
+1. 任何钱包用户调用 oper 合约的 getGameResult 获取对应 gameId 的 IPFS 的 hash（此操作不消耗 gas）
