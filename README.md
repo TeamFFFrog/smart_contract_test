@@ -52,9 +52,14 @@ REG 是一种 ERC20 代币，其价格与美元绑定。合约地址为：~~0x18
 
 4. （在后续的游戏逻辑合约部署时，将逻辑合约地址作为 Fish 合约的 owner，来实现通过游戏逻辑合约控制 Fish 币的分发）
 
-### REG加了burn功能（2024/6/21）
+### REG 加了 burn 功能（2024/6/21）
 
-1. REG加了burn功能
+1. REG 加了 burn 功能
 
-2. 简单地写了个分配奖励和燃烧REG的合约
-   
+2. 简单地写了个分配奖励和燃烧 REG 的合约
+
+### 改进游戏逻辑合约（2024/6/24）
+
+1. 游戏逻辑合约有 startGame、endGame、getGameResult 三个函数，前两个只允许 owner 调用。startGame 会接受 gameId 和一个地址数组，质押 6 名玩家每名 1 个 REG；endGame 会接受 gameId、赢家地址数组、输家地址数组和 IPFS 的 hash，并分发给赢家 300/200/100 fish 币且返还 REG，销毁输家 REG，将 IPFS 的 hash 存入 gameId=>hash 的映射中
+
+2. 编写了相关测试，并在 Remix 上模拟了全过程，测试无误
