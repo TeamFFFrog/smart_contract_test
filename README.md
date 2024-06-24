@@ -77,9 +77,9 @@ REG 是一种 ERC20 代币，其价格与美元绑定。合约地址为：~~0x18
 
 ## 一些重要信息
 
-REG 地址：0x0769a90bea3121599DA6b48eD5fBdE47ABd83EBE
-fish 地址：0xf94aa9537CfA0E4d21F8e41457326A57fb1368aC
-oper 地址：0x9C709D42f87A9FCFA2B8b75B908609d9F5A93C57
+- REG 地址：0x0769a90bea3121599DA6b48eD5fBdE47ABd83EBE
+- fish 地址：0xf94aa9537CfA0E4d21F8e41457326A57fb1368aC
+- oper 地址：0x9C709D42f87A9FCFA2B8b75B908609d9F5A93C57
 
 目前部署在以太坊的 sepolia 链，若后续无更改，可部署到 linea-sepolia 链
 
@@ -94,16 +94,16 @@ oper 地址：0x9C709D42f87A9FCFA2B8b75B908609d9F5A93C57
 
 ##### 玩家事先准备：
 
-1. 6 个玩家调用 REG 合约买 REG
-2. 6 个玩家分别调用 REG 的 approve 函数向 oper 合约授权一定数量的 REG（前端实现）
+1. 6 个玩家调用 REG 合约买 REG（前端调用）
+2. 6 个玩家分别调用 REG 的 approve 函数向 oper 合约授权一定数量的 REG（前端调用）
 
 ##### 游戏开始：
 
-1. owner 调用 oper 合约的 startGame，传入相关参数（后端实现）
+1. owner 调用 oper 合约的 startGame，传入相关参数（后端调用）
 
 ##### 游戏结束：
 
-1. owner 调用 oper 合约的 endGame，传入相关参数（后端实现）
+1. owner 调用 oper 合约的 endGame，传入相关参数（后端调用）
 
 ##### 其他：
 
