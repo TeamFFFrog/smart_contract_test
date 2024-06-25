@@ -6,7 +6,9 @@ import "../src/RegToken.sol";
 
 contract DeployRegToken is Script {
     function run() external {
-        address priceFeed = 0x694AA1769357215DE4FAC081bf1f309aDC325306; // Replace with actual Chainlink ETH/USD price feed address
+        address payable priceFeed = payable(
+            0xC7199e0686DF9844B511fAf2796C518F6D7292EB
+        ); // Replace with actual Chainlink ETH/USD price feed address
         address owner = msg.sender;
         uint256 _feeRate = 1;
 

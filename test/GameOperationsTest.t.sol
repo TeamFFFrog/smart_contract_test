@@ -5,13 +5,18 @@ import "forge-std/Test.sol";
 import "../src/RegToken.sol";
 import "../src/FishToken.sol";
 import "../src/GameOperations.sol";
-import "../src/MockPriceFeed.sol";
+import "../lib/usingtellor/contracts/UsingTellor.sol";
+import {TellorPlayground} from "../lib/usingtellor/contracts/TellorPlayground.sol";
 
 contract GameOperationsTest is Test {
     RegToken public regToken;
     FishToken public fishToken;
     GameOperations public gameOperations;
-    MockPriceFeed public mockPriceFeed;
+    TellorPlayground public tellorPlayground;
+
+    bytes public queryData = abi.encode("SpotPrice", abi.encode("eth", "usd"));
+    bytes32 public queryId = keccak256(queryData);
+
     address owner = address(0xABCD);
     address player1 = address(0x1234);
     address player2 = address(0x5678);
@@ -22,20 +27,28 @@ contract GameOperationsTest is Test {
 
     function setUp() public {
         // Set up initial conditions
+        // Deploy TellorPlayground and set initial price
         vm.startPrank(owner);
-        mockPriceFeed = new MockPriceFeed(3000 * 10 ** 8); // Set initial price to $3000
-        regToken = new RegToken(address(mockPriceFeed), owner, 1);
+        tellorPlayground = new TellorPlayground();
+        uint256 mockValue = 2000e18;
+        tellorPlayground.submitValue(
+            queryId,
+            abi.encodePacked(mockValue),
+            0,
+            queryData
+        );
+        regToken = new RegToken(payable(address(tellorPlayground)), owner, 1);
         fishToken = new FishToken(owner);
         gameOperations = new GameOperations(
             address(regToken),
             address(fishToken),
             owner
         );
+
         // Transfer ownership of FishToken to GameOperations contract
         fishToken.transferOwnership(address(gameOperations));
         regToken.transferOwnership(address(gameOperations));
         vm.stopPrank();
-
         // Fund the owner and players with ETH
         vm.deal(owner, 10 ether);
         vm.deal(player1, 10 ether);
@@ -52,9 +65,13 @@ contract GameOperationsTest is Test {
         buyAndApproveRegTokens(player4);
         buyAndApproveRegTokens(player5);
         buyAndApproveRegTokens(player6);
+
+        // Ensure the initial price data is valid
+        vm.warp(block.timestamp + 901 seconds); // Warp to a time past the initial data's timestamp
     }
 
     function buyAndApproveRegTokens(address player) internal {
+        vm.warp(block.timestamp + 905 seconds); // Warp the block timestamp to ensure price data is not stale
         vm.startPrank(player);
         regToken.buyRegTokens{value: 1 ether}();
         regToken.approve(address(gameOperations), 1 * 10 ** 18);

@@ -75,13 +75,16 @@ REG 是一种 ERC20 代币，其价格与美元绑定。合约地址为：~~0x18
 
 ---
 
+### 因 chainlink 不支持 linea-sepolia 的喂价，转用 Tellor，重写相关合约和测试
+
+1. 重写 REG 合约，REG 测试和 GameOperation 测试
+2. 三个合约部署到 Linea-Sepolia 测试网，模拟游戏流程测试通过
+
 ## 一些重要信息
 
-- REG 地址：0x0769a90bea3121599DA6b48eD5fBdE47ABd83EBE
-- fish 地址：0xf94aa9537CfA0E4d21F8e41457326A57fb1368aC
-- oper 地址：0x9C709D42f87A9FCFA2B8b75B908609d9F5A93C57
-
-目前部署在以太坊的 sepolia 链，若后续无更改，可部署到 linea-sepolia 链
+- REG 地址：0x8ADa36062cC01124E4647a70e1c1433cbB1a6a98
+- fish 地址：0xa7464F631C0bEeeC456eC65625648e7d8F771a80
+- oper 地址：0x18B96581B8c41e9C1f8Ce5eFD9b81Dd564ab94A0
 
 ---
 
