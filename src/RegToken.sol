@@ -3,56 +3,79 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@chainlink/contracts/v0.8/interfaces/AggregatorV3Interface.sol";
+import "../lib/usingtellor/contracts/UsingTellor.sol";
 
-contract RegToken is ERC20, Ownable {
-    AggregatorV3Interface internal priceFeed;
+contract RegToken is ERC20, Ownable, UsingTellor {
+    bytes public queryData = abi.encode("SpotPrice", abi.encode("eth", "usd"));
+    bytes32 public queryId = keccak256(queryData);
     uint256 public feeRate; // Fee rate in basis points (e.g., 100 = 1%)
+    uint256 public lastStoredTimestamp; // Cache timestamp to prevent dispute attacks
+    uint256 public lastStoredPrice;
 
     event FeeRateChanged(uint256 newFeeRate);
+    event Regamount(uint256 regAmount);
 
-    // Using Chainlink's ETH/USD price feed
+    // Using Tellor's ETH/USD price feed
     constructor(
-        address _priceFeed,
+        address payable _tellorAddress,
         address initialOwner,
         uint256 _feeRate
-    ) ERC20("Reg Token", "REG") Ownable(initialOwner) {
-        priceFeed = AggregatorV3Interface(_priceFeed);
+    )
+        ERC20("Reg Token", "REG")
+        Ownable(initialOwner)
+        UsingTellor(_tellorAddress)
+    {
         feeRate = _feeRate;
     }
 
     /**
-     * Returns the latest price
+     * Returns the latest price from Tellor
      */
-    function getLatestPrice() public view returns (int) {
-        (
-            ,
-            /*uint80 roundID*/ int price /*uint startedAt*/ /*uint timeStamp*/ /*uint80 answeredInRound*/,
-            ,
-            ,
+    function getLatestPrice()
+        public
+        returns (uint256 _price, uint256 timestamp)
+    {
+        // Retrieve data at least 15 minutes old to allow time for disputes
+        (bytes memory _value, uint256 _timestampRetrieved) = getDataBefore(
+            queryId,
+            block.timestamp - 15 minutes
+        );
+        require(_timestampRetrieved > 0, "No price data found");
+        // Check that the data is not too old
+        require(
+            block.timestamp - _timestampRetrieved < 24 hours,
+            "Price data too old"
+        );
 
-        ) = priceFeed.latestRoundData();
-        return price;
+        // decode the value from bytes to uint256
+        _price = abi.decode(_value, (uint256));
+
+        // prevent a back-in-time dispute attack by caching the most recent value and timestamp.
+        // this stops an attacker from disputing tellor values to manupulate which price is used
+        // by your protocol
+        if (_timestampRetrieved > lastStoredTimestamp) {
+            // if the new value is newer than the last stored value, update the cache
+            lastStoredTimestamp = _timestampRetrieved;
+            lastStoredPrice = _price;
+        } else {
+            // if the new value is older than the last stored value, use the cached value
+            _price = lastStoredPrice;
+            _timestampRetrieved = lastStoredTimestamp;
+        }
+        // return the value and timestamp
+        return (_price, _timestampRetrieved);
     }
 
     // Calculate the amount of REG tokens for given ETH amount
-    function calculateRegAmount(
-        uint256 ethAmount
-    ) public view returns (uint256) {
-        int price = getLatestPrice();
-        require(price > 0, "Invalid price feed");
-        uint256 ethPrice = uint256(price);
-        return (ethAmount * ethPrice) / 1e8;
+    function calculateRegAmount(uint256 ethAmount) public returns (uint256) {
+        (uint256 ethPrice, ) = getLatestPrice();
+        return (ethAmount * ethPrice) / 1e18;
     }
 
     // Calculate the amount of ETH for given REG tokens
-    function calculateEthAmount(
-        uint256 regAmount
-    ) public view returns (uint256) {
-        int price = getLatestPrice();
-        require(price > 0, "Invalid price feed");
-        uint256 ethPrice = uint256(price);
-        return ((regAmount * 1e8 * 1e18) / ethPrice);
+    function calculateEthAmount(uint256 regAmount) public returns (uint256) {
+        (uint256 ethPrice, ) = getLatestPrice();
+        return ((regAmount * 1e18) / ethPrice);
     }
 
     // Buy Reg tokens with ETH, deducting fee
@@ -70,13 +93,12 @@ contract RegToken is ERC20, Ownable {
         uint256 ethAmount = calculateEthAmount(regAmount);
         uint256 fee = (ethAmount * feeRate) / 100;
         uint256 netEthAmount = ethAmount - fee;
-        uint256 netEthAmountToSend = netEthAmount / 1e18;
         require(
-            address(this).balance >= netEthAmountToSend,
+            address(this).balance >= netEthAmount,
             "Insufficient ETH balance in contract"
         );
         _burn(msg.sender, regAmount);
-        payable(msg.sender).transfer(netEthAmountToSend);
+        payable(msg.sender).transfer(netEthAmount);
     }
 
     // Withdraw ETH from the contract (only owner)
